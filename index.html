@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Movie Booking System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #1e3a8a;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color: #ffffff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #1e40af;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        tr:hover {
+            background-color: #e0e7ff;
+        }
+        .delete-btn {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
+        .showtimes-btn {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .showtimes-btn:hover {
+            background-color: #2563eb;
+        }
+        .showtimes-section, .booking-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .booking-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+        }
+        .booking-form input, .booking-form button {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .booking-form button {
+            background-color: #22c55e;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .booking-form button:hover {
+            background-color: #16a34a;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Movie Booking System</h1>
+
+    <div>
+        <h2>Available Movies</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Genre</th>
+                    <th>Status</th>
+                    <th>Average Rating</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="movie : ${movies}">
+                    <td th:text="${movie.id}">ID</td>
+                    <td th:text="${movie.title}">Title</td>
+                    <td th:text="${movie.genre}">Genre</td>
+                    <td th:text="${movie.status}">Status</td>
+                    <td th:text="${movie.averageRating}">Rating</td>
+                    <td>
+                        <form th:action="@{/api/bookings/movies/{id}(id=${movie.id})}" method="post" style="display:inline;">
+                            <input type="hidden" name="_method" value="delete" />
+                            <button class="delete-btn" type="submit">Delete</button>
+                        </form>
+                        <button class="showtimes-btn" th:onclick="'showShowtimes(' + ${movie.id} + ')'">Showtimes</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="showtimes-section hidden" id="showtimesSection">
+        <h2>Showtimes</h2>
+        <table id="showtimesTable">
+            <thead>
+                <tr>
+                    <th>Show ID</th>
+                    <th>Time</th>
+                    <th>Available Seats</th>
+                </tr>
+            </thead>
+            <tbody id="showtimesBody">
+                <!-- Populated dynamically via JavaScript -->
+            </tbody>
+        </table>
+        <button th:onclick="'hideShowtimes()'" style="margin-top: 10px;">Hide Showtimes</button>
+    </div>
+
+    <div class="booking-section hidden" id="bookingSection">
+        <h2>Book Tickets</h2>
+        <form class="booking-form" th:action="@{/api/bookings/tickets}" method="post" th:object="${bookingRequest}">
+            <input type="number" th:field="*{userId}" placeholder="User ID" required />
+            <input type="number" th:field="*{showId}" placeholder="Show ID" required />
+            <input type="text" th:field="*{seatIds}" placeholder="Seat IDs (e.g., 1,2,3)" required />
+            <input type="number" step="0.01" th:field="*{totalAmount}" placeholder="Total Amount" required />
+            <button type="submit">Book Tickets</button>
+        </form>
+    </div>
+
+    <script th:inline="javascript">
+        function showShowtimes(movieId) {
+            fetch('/api/bookings/showtimes/' + movieId)
+                .then(response => response.json())
+                .then(shows => {
+                    const tbody = document.getElementById('showtimesBody');
+                    tbody.innerHTML = '';
+                    shows.forEach(show => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${show.id}</td>
+                            <td>${show.time}</td>
+                            <td>${show.availableSeats}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    document.getElementById('showtimesSection').classList.remove('hidden');
+                })
+                .catch(error => console.error('Error fetching showtimes:', error));
+        }
+
+        function hideShowtimes() {
+            document.getElementById('showtimesSection').classList.add('hidden');
+            document.getElementById('bookingSection').classList.add('hidden');
+        }
+
+        document.querySelector('form[th:action="/api/bookings/tickets"]').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/api/bookings/tickets', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: parseInt(formData.get('userId')),
+                    showId: parseInt(formData.get('showId')),
+                    seatIds: formData.get('seatIds').split(',').map(id => parseInt(id.trim())),
+                    totalAmount: parseFloat(formData.get('totalAmount'))
+                })
+            })
+            .then(response => response.json())
+            .then(data => alert('Booking successful: ' + JSON.stringify(data)))
+            .catch(error => alert('Error booking tickets: ' + error));
+            hideShowtimes();
+        });
+    </script>
+</body>
+</html>

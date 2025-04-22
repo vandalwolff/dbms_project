@@ -1,0 +1,130 @@
+@startuml
+package "com.moviebooking.model" {
+  abstract class BaseEntity {
+    -id: Long
+    +getId(): Long
+    +setId(id: Long): void
+  }
+
+  class Movie {
+    -title: String
+    -genre: String
+    -status: String
+    -averageRating: Double
+  }
+
+  class Show {
+    -movieId: Long
+    -screenId: Long
+    -showDate: LocalDate
+    -startTime: LocalTime
+    -endTime: LocalTime
+  }
+
+  class Booking {
+    -userId: Long
+    -showId: Long
+    -totalAmount: BigDecimal
+    -bookingReference: String
+  }
+
+  class Seat {
+    -screenId: Long
+    -seatRow: String
+    -seatNumber: int
+    -seatType: String
+    -status: String
+  }
+
+  BaseEntity <|.. Movie
+  BaseEntity <|.. Show
+  BaseEntity <|.. Booking
+  BaseEntity <|.. Seat
+}
+
+package "com.moviebooking.service" {
+  interface BookingService {
+    +getAvailableMovies(): List<Movie>
+    +getShowtimes(movieId: Long): List<Show>
+    +bookTicket(bookingRequest: BookingRequest): Booking
+  }
+
+  class BookingServiceImpl {
+    -movieRepository: MovieRepository
+    -showRepository: ShowRepository
+    -bookingRepository: BookingRepository
+    -seatRepository: SeatRepository
+    +getAvailableMovies(): List<Movie>
+    +getShowtimes(movieId: Long): List<Show>
+    +bookTicket(bookingRequest: BookingRequest): Booking
+  }
+
+  BookingService <|.. BookingServiceImpl
+}
+
+package "com.moviebooking.repository" {
+  interface MovieRepository {
+    +findAvailableMovies(): List<Movie>
+  }
+
+  interface ShowRepository {
+    +findShowsByMovieId(movieId: Long): List<Show>
+  }
+
+  interface BookingRepository {
+    +saveBooking(booking: Booking): Booking
+  }
+
+  interface SeatRepository {
+    +findAvailableSeats(showId: Long): List<Seat>
+    +lockSeat(seatId: Long): boolean
+  }
+
+  class MovieRepositoryImpl {
+    -connection: Connection
+    +findAvailableMovies(): List<Movie>
+  }
+
+  class ShowRepositoryImpl {
+    -connection: Connection
+    +findShowsByMovieId(movieId: Long): List<Show>
+  }
+
+  class BookingRepositoryImpl {
+    -connection: Connection
+    +saveBooking(booking: Booking): Booking
+  }
+
+  class SeatRepositoryImpl {
+    -connection: Connection
+    +findAvailableSeats(showId: Long): List<Seat>
+    +lockSeat(seatId: Long): boolean
+  }
+
+  MovieRepository <|.. MovieRepositoryImpl
+  ShowRepository <|.. ShowRepositoryImpl
+  BookingRepository <|.. BookingRepositoryImpl
+  SeatRepository <|.. SeatRepositoryImpl
+}
+
+package "com.moviebooking.controller" {
+  class BookingController {
+    -bookingService: BookingService
+    +getMovies(): ResponseEntity<List<Movie>>
+    +getShowtimes(movieId: Long): ResponseEntity<List<Show>>
+    +createBooking(bookingRequest: BookingRequest): ResponseEntity<Booking>
+  }
+}
+
+package "com.moviebooking.exception" {
+  class BookingException {
+    -message: String
+  }
+}
+
+BookingController --> BookingService
+BookingServiceImpl --> MovieRepository
+BookingServiceImpl --> ShowRepository
+BookingServiceImpl --> BookingRepository
+BookingServiceImpl --> SeatRepository
+@enduml
